@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#07090d">
+<title>Scan Calculator 0.2</title>
+<style>
+  :root{
+    --bg:#07090d; --bg2:#0b0e14;
+    --panel:#11151c; --panel2:#161c25; --panel3:#1c2330;
+    --border:#232b36; --border2:#2e3845;
+    --text:#f0f4f8; --muted:#9aa6b2; --faint:#5b6675;
+    --accent:#22d3ee; --accent-rgb:34,211,238;
+    --amber:#fbbf24; --amber-rgb:251,191,36;
+    --cyan:#22d3ee; --sky:#7dd3fc;
+    --ok:#34d399; --ok-rgb:52,211,153; --okbg:#0c2a20;
+    --danger:#f87171; --danger-rgb:248,113,113; --dangerbg:#2c1414;
+    --radius:14px;
+    --t:.16s cubic-bezier(.4,0,.2,1);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    background:
+      radial-gradient(120% 60% at 50% -10%, rgba(34,211,238,.06), transparent 60%),
+      radial-gradient(120% 60% at 50% 110%, rgba(251,191,36,.05), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    overflow-x:hidden;
+    -webkit-user-select:none; user-select:none;
+    letter-spacing:.1px;
+  }
+  #app{display:flex;flex-direction:column;height:100dvh;width:100%;max-width:560px;margin:0 auto;}
+  .screen{display:none;flex-direction:column;flex:1;min-height:0;}
+  .screen.active{display:flex;}
+  .body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:12px 14px 16px;}
+  input{font-family:inherit;}
+  #screen-recon{--accent:#fbbf24;--accent-rgb:251,191,36;}
+  #screen-opt{--accent:#22d3ee;--accent-rgb:34,211,238;}
+
+  /* SVG icons */
+  .ico{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;}
+  .ico.sm{width:17px;height:17px;}
+  .ico.lg{width:30px;height:30px;}
+  #sprite{position:absolute;width:0;height:0;overflow:hidden;}
+
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  /* Header */
+  header{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,var(--panel),rgba(17,21,28,.6));backdrop-filter:blur(6px);}
+  header .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:.3px;}
+  header .brand .ico{color:var(--accent);filter:drop-shadow(0 0 8px rgba(var(--accent-rgb),.5));}
+  header .mode{font-size:11px;color:var(--muted);margin-left:auto;text-transform:uppercase;letter-spacing:1px;
+    border:1px solid var(--border);border-radius:999px;padding:3px 9px;}
+  .iconbtn{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:11px;
+    min-width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:var(--t);}
+  .iconbtn:active{background:var(--panel3);transform:scale(.94);}
+
+  /* Counter bar (bento stats) */
+  .counters{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px;
+    background:linear-gradient(180deg,rgba(17,21,28,.7),transparent);}
+  .counter{position:relative;background:
+      linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--border);
+    border-radius:var(--radius);padding:9px 10px 10px;min-width:0;overflow:hidden;}
+  .counter .ch{display:flex;align-items:center;gap:5px;color:var(--muted);}
+  .counter .ch .ico{width:14px;height:14px;}
+  .counter .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;}
+  .counter .val{font-size:clamp(22px,7.5vw,32px);font-weight:800;line-height:1.05;margin-top:2px;
+    font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;}
+  .counter.target .val{color:var(--amber);text-shadow:0 0 16px rgba(var(--amber-rgb),.35);}
+  .counter.target .ch{color:var(--amber);}
+  .counter.boxes .val{color:var(--cyan);text-shadow:0 0 16px rgba(34,211,238,.3);}
+  .counter.boxes .ch{color:var(--cyan);}
+  .counter.pieces .val{color:var(--sky);}
+  .counter.pieces .ch{color:var(--sky);}
+
+  /* Home — bento */
+  .home-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:14px;}
+  .bento{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  .span2{grid-column:1 / -1;}
+  .card{position:relative;border:1px solid var(--border);border-radius:18px;overflow:hidden;
+    background:linear-gradient(160deg,var(--panel2),var(--panel));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 12px 30px -18px rgba(0,0,0,.8);}
+  .deco{position:absolute;right:-14px;bottom:-16px;width:104px;height:104px;color:var(--accent);opacity:.10;pointer-events:none;}
+  .hero{padding:18px 18px;display:flex;align-items:center;gap:14px;
+    background:radial-gradient(120% 140% at 100% 0%, rgba(34,211,238,.12), transparent 55%), linear-gradient(160deg,var(--panel2),var(--panel));}
+  .hero .badge{width:54px;height:54px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex:none;
+    background:linear-gradient(160deg,rgba(34,211,238,.2),rgba(34,211,238,.06));border:1px solid var(--border2);color:var(--accent);
+    box-shadow:0 0 24px -4px rgba(34,211,238,.4);}
+  .hero .badge .ico{width:30px;height:30px;}
+  .hero h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.2px;}
+  .hero p{margin:3px 0 0;font-size:12.5px;color:var(--muted);line-height:1.35;}
+  .home-h{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:2px;text-align:center;margin:0 0 12px;}
+
+  .tile{cursor:pointer;padding:18px 16px;display:flex;flex-direction:column;gap:7px;min-height:128px;transition:var(--t);}
+  .tile:active{transform:scale(.985);}
+  .tile .tbadge{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--border2);margin-bottom:2px;}
+  .tile .kick{font-size:11px;font-weight:800;letter-spacing:1.5px;}
+  .tile .t{font-size:18px;font-weight:800;line-height:1.1;}
+  .tile .d{font-size:12.5px;color:var(--muted);line-height:1.4;}
+  .tile.recon{--accent:#fbbf24;--accent-rgb:251,191,36;}
+  .tile.recon .deco,.tile.recon .kick{color:var(--amber);}
+  .tile.recon .tbadge{background:linear-gradient(160deg,rgba(251,191,36,.18),rgba(251,191,36,.05));color:var(--amber);box-shadow:0 0 22px -6px rgba(251,191,36,.5);}
+  .tile.recon{box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 12px 30px -18px rgba(0,0,0,.8), inset 0 0 0 1px rgba(251,191,36,.06);}
+  .tile.optm{--accent:#22d3ee;--accent-rgb:34,211,238;}
+  .tile.optm .deco,.tile.optm .kick{color:var(--cyan);}
+  .tile.optm .tbadge{background:linear-gradient(160deg,rgba(34,211,238,.18),rgba(34,211,238,.05));color:var(--cyan);box-shadow:0 0 22px -6px rgba(34,211,238,.5);}
+
+  .minitile{cursor:pointer;padding:14px;display:flex;align-items:center;gap:11px;transition:var(--t);}
+  .minitile:active{transform:scale(.97);}
+  .minitile .mi{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none;
+    background:var(--panel3);border:1px solid var(--border2);color:var(--muted);}
+  .minitile .mt{font-size:13px;font-weight:700;}
+  .minitile .ms{font-size:11px;color:var(--muted);}
+
+  /* Fields */
+  .field{margin-bottom:11px;}
+  .field label{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+  .field label .ico{width:13px;height:13px;}
+  .inwrap{position:relative;}
+  .inwrap>.ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);width:18px;height:18px;}
+  .field input{width:100%;background:var(--panel);border:1px solid var(--border);color:var(--text);
+    border-radius:12px;padding:13px 12px 13px 38px;font-size:18px;outline:none;transition:var(--t);}
+  .field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.22);}
+  .field.noicon input{padding-left:12px;}
+  .scanfield input{font-size:20px;font-weight:600;border-color:rgba(var(--accent-rgb),.55);background:#0c1219;
+    box-shadow:inset 0 0 22px -10px rgba(var(--accent-rgb),.5);}
+  .scanfield input:focus{box-shadow:0 0 0 3px rgba(var(--accent-rgb),.3),inset 0 0 22px -10px rgba(var(--accent-rgb),.5);}
+  .scanfield .ico{color:var(--accent);}
+  .row2{display:flex;gap:10px;}
+  .row2 .field{flex:1;}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;
+    background:var(--accent);color:#04181c;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;
+    transition:var(--t);}
+  .btn .ico{width:19px;height:19px;stroke-width:2.4;}
+  .btn:active{transform:scale(.98);filter:brightness(.96);}
+  .btn.sec{background:var(--panel2);color:var(--text);border:1px solid var(--border2);}
+  .btn.danger{background:var(--dangerbg);color:#fca5a5;border:1px solid #5c2626;}
+  .btn.blue{background:var(--accent);color:#04181c;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btns{display:flex;gap:10px;margin-top:10px;}
+
+  /* Panels / banners */
+  .panel{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:10px;}
+  .banner{display:flex;align-items:center;gap:12px;border-radius:var(--radius);padding:14px;margin-bottom:10px;border:1px solid;}
+  .banner .ico{width:30px;height:30px;flex:none;}
+  .banner .bt{font-weight:800;font-size:15px;line-height:1.15;}
+  .banner .bb{font-size:23px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums;}
+  .banner.ok{background:var(--okbg);border-color:#1f6f54;color:#86efc6;box-shadow:0 0 26px -10px rgba(var(--ok-rgb),.5);}
+  .banner.ok .ico{color:var(--ok);}
+  .banner.bad{background:var(--dangerbg);border-color:#7a2b2b;color:#fca5a5;box-shadow:0 0 26px -10px rgba(var(--danger-rgb),.5);}
+  .banner.bad .ico{color:var(--danger);}
+  .banner.idle{background:var(--panel2);border-color:var(--border);color:var(--muted);}
+  .banner.idle .ico{color:var(--faint);}
+  .kv{display:flex;justify-content:space-between;font-size:14px;padding:4px 0;border-bottom:1px dashed #283040;}
+  .kv:last-child{border-bottom:none;}
+  .kv .k{color:var(--muted);} .kv .v{font-weight:700;font-variant-numeric:tabular-nums;}
+  .pct-wrap{margin-top:9px;}
+  .pct-bar{height:10px;background:#0a0f16;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+  .pct-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--sky));transition:width var(--t);}
+  .hint{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.45;}
+
+  /* Live band */
+  .band{display:flex;align-items:center;gap:11px;background:var(--panel2);border:1px solid var(--border);
+    border-left:4px solid var(--accent);border-radius:12px;padding:10px 12px;margin-bottom:11px;}
+  .band .ico{color:var(--accent);width:24px;height:24px;flex:none;}
+  .band.exact{border-left-color:var(--ok);} .band.exact .ico{color:var(--ok);}
+  .band.none{border-left-color:var(--border);color:var(--muted);} .band.none .ico{color:var(--faint);}
+  .band .b1{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .band .b2{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .band .b2 .sm{font-size:12px;color:var(--muted);font-weight:600;}
+
+  /* Chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  #rc-chips,#op-chips{max-height:30vh;overflow-y:auto;overflow-x:hidden;align-content:flex-start;scrollbar-width:thin;scroll-behavior:smooth;}
+  .chip{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:7px 9px;min-width:62px;text-align:center;transition:var(--t);}
+  .chip .bi{font-size:10px;color:var(--muted);letter-spacing:.5px;font-weight:600;}
+  .chip .pc{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .chip.pull{background:linear-gradient(160deg,#0f2a20,#0c2018);border-color:var(--ok);box-shadow:0 0 16px -6px rgba(var(--ok-rgb),.6);}
+  .chip.pull .pc{color:#86efc6;}
+  .chip.newest{border-color:var(--accent);box-shadow:0 0 0 1px rgba(var(--accent-rgb),.4),0 0 16px -6px rgba(var(--accent-rgb),.7);}
+  .sec-title{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 8px;}
+  .sec-title .ico{width:14px;height:14px;color:var(--faint);}
+
+  /* Step list */
+  .grp{margin-bottom:11px;}
+  .grp .gh{font-size:13px;font-weight:700;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .grp .gh .gl{display:flex;align-items:center;gap:6px;min-width:0;}
+  .grp .gh .gl .ico{width:15px;height:15px;color:var(--accent);flex:none;}
+  .grp .gh .rk{color:var(--sky);font-size:12px;}
+  .empty{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--muted);text-align:center;padding:30px 12px;font-size:14px;line-height:1.5;}
+  .empty .ico{width:38px;height:38px;color:var(--faint);}
+
+  /* Dashboard */
+  .statgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:4px;}
+  .stat{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:13px;padding:11px 12px;}
+  .stat .sh{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;}
+  .stat .sh .ico{width:15px;height:15px;}
+  .stat .sv{font-size:25px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:3px;}
+  .stat.a .sv{color:var(--cyan);} .stat.a .sh{color:var(--cyan);}
+  .stat.b .sv{color:var(--sky);} .stat.b .sh{color:var(--sky);}
+  .stat.c .sv{color:var(--amber);} .stat.c .sh{color:var(--amber);}
+  .stat.d .sv{color:var(--ok);} .stat.d .sh{color:var(--ok);}
+  .item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 11px;background:var(--panel);
+    border:1px solid var(--border);border-radius:11px;margin-bottom:6px;}
+  .item .szwrap{display:flex;align-items:center;gap:9px;min-width:0;}
+  .item .szwrap .ico{width:18px;height:18px;color:var(--accent);flex:none;}
+  .item .sz{font-weight:800;font-size:16px;}
+  .item .mid{color:var(--muted);font-size:13px;}
+  .item .tot{font-weight:800;color:var(--cyan);font-variant-numeric:tabular-nums;}
+  .palcard{background:var(--panel2);border:1px solid var(--border);border-radius:13px;padding:11px;margin-bottom:8px;}
+  .palcard .ph{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px;}
+  .palcard .pl{display:flex;align-items:center;gap:8px;min-width:0;}
+  .palcard .pl .ico{width:19px;height:19px;color:var(--cyan);flex:none;}
+  .palcard .pn{font-weight:800;}
+  .palcard .pr{font-size:12px;color:var(--sky);}
+  .palcard .pstat{font-size:13px;color:var(--muted);padding-left:27px;}
+  .smallbtn{display:inline-flex;align-items:center;gap:6px;background:var(--panel3);border:1px solid var(--border2);color:var(--text);
+    border-radius:9px;padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer;transition:var(--t);min-height:38px;}
+  .smallbtn .ico{width:15px;height:15px;}
+  .smallbtn:active{transform:scale(.96);}
+
+  /* Bottom nav */
+  .nav{display:flex;border-top:1px solid var(--border);background:linear-gradient(0deg,var(--panel),rgba(17,21,28,.6));
+    padding:5px 6px calc(env(safe-area-inset-bottom,0px) + 5px);}
+  .nav button{flex:1;background:none;border:none;color:var(--muted);padding:8px 2px 7px;font-size:11px;font-weight:600;
+    display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;border-radius:11px;transition:var(--t);position:relative;}
+  .nav button .ico{width:23px;height:23px;}
+  .nav button.on{color:var(--accent);}
+  .nav button.on::before{content:"";position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:26px;height:3px;
+    border-radius:3px;background:var(--accent);box-shadow:0 0 12px rgba(var(--accent-rgb),.8);}
+  .actbar{padding:9px 13px calc(env(safe-area-inset-bottom,0px) + 9px);border-top:1px solid var(--border);
+    background:var(--panel);display:flex;gap:10px;}
+  .actbar .btn{flex:1;}
+
+  /* Settings sheet */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;z-index:50;backdrop-filter:blur(3px);}
+  .overlay.open{display:flex;}
+  .sheet{background:var(--panel);border-top-left-radius:22px;border-top-right-radius:22px;width:100%;max-width:560px;margin:0 auto;
+    padding:8px 16px calc(env(safe-area-inset-bottom,0px) + 16px);border:1px solid var(--border);animation:slideup var(--t);}
+  @keyframes slideup{from{transform:translateY(20px);opacity:.6}to{transform:translateY(0);opacity:1}}
+  .grab{width:38px;height:4px;border-radius:3px;background:var(--border2);margin:6px auto 12px;}
+  .sheet h3{margin:0 0 12px;font-size:17px;}
+  .opt{display:flex;align-items:center;gap:11px;padding:13px;border:1px solid var(--border);border-radius:12px;margin-bottom:9px;cursor:pointer;background:var(--panel2);transition:var(--t);}
+  .opt .oi{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--panel3);border:1px solid var(--border2);color:var(--muted);}
+  .opt.sel{border-color:var(--accent);background:#0c1f22;}
+  .opt.sel .oi{color:var(--accent);border-color:var(--accent);}
+  .opt .dot{margin-left:auto;width:20px;height:20px;border-radius:50%;border:2px solid var(--border2);flex:none;}
+  .opt.sel .dot{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 3px var(--panel);}
+  .opt .ot{font-weight:700;font-size:14px;} .opt .od{font-size:12px;color:var(--muted);}
+
+  .flash{position:fixed;left:50%;top:16px;transform:translateX(-50%) translateY(-8px);display:flex;align-items:center;gap:8px;
+    background:var(--dangerbg);color:#fca5a5;border:1px solid #5c2626;padding:9px 15px;border-radius:12px;font-size:13px;font-weight:700;
+    z-index:80;opacity:0;transition:var(--t);pointer-events:none;max-width:90%;text-align:center;box-shadow:0 10px 30px -10px rgba(0,0,0,.7);}
+  .flash .ico{width:18px;height:18px;}
+  .flash.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .flash.good{background:var(--okbg);color:#86efc6;border-color:#1f6f54;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none!important;animation:none!important;}
+    .tile:active,.btn:active,.iconbtn:active,.minitile:active,.smallbtn:active{transform:none!important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== ICON SPRITE (Lucide-style, warehouse set) ===== -->
+<svg id="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-warehouse" viewBox="0 0 24 24"><path d="M22 8.35 12 4 2 8.35V20a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1Z"/><path d="M6 21v-7h12v7"/><path d="M6 14h12"/><path d="M6 17.5h12"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.6 12 3l9 7.6"/><path d="M5 9.4V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.4"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="16" x2="21" y2="16"/><circle cx="9" cy="8" r="2.4" fill="currentColor"/><circle cx="15" cy="16" r="2.4" fill="currentColor"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 7V5.5A1.5 1.5 0 0 1 5.5 4H7"/><path d="M17 4h1.5A1.5 1.5 0 0 1 20 5.5V7"/><path d="M20 17v1.5a1.5 1.5 0 0 1-1.5 1.5H17"/><path d="M7 20H5.5A1.5 1.5 0 0 1 4 18.5V17"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-barcode" viewBox="0 0 24 24"><path d="M4 6v12"/><path d="M7.5 6v12"/><path d="M11 6v12"/><path d="M14 6v12"/><path d="M17.5 6v12"/><path d="M20 6v12"/></symbol>
+  <symbol id="i-clipboard-check" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="m9 14 2 2 4-4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.3 12 2.6 2.6L15.8 9"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><rect x="14" y="14" width="7" height="7" rx="1.4"/></symbol>
+  <symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="m21 8-9-5-9 5v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v9"/></symbol>
+  <symbol id="i-boxes" viewBox="0 0 24 24"><path d="m7.5 10.5-4-2 4-2 4 2Z"/><path d="m16.5 10.5-4-2 4-2 4 2Z"/><path d="m12 18-4-2 4-2 4 2Z"/><path d="M3.5 8.5v4l4 2v-4"/><path d="M12.5 8.5v4l4 2v-4"/><path d="M8 14v4l4 2v-4"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 16.5 9 5 9-5"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 5.5-8 11.5-8 11.5S4 15.5 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.8"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.4 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.4a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13.5"/><circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6.5 7 7.5 20a2 2 0 0 0 2 1.9h5a2 2 0 0 0 2-1.9L18.5 7"/><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/></symbol>
+  <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/><path d="M4 11.5v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></symbol>
+</svg>
+
+<div id="app">
+  <!-- ===== HOME ===== -->
+  <div id="screen-home" class="screen">
+    <header><span class="brand"><svg class="ico"><use href="#i-warehouse"/></svg>Scan Calculator</span><span class="mode">v0.2</span></header>
+    <div class="home-body">
+      <div class="bento">
+        <div class="card hero span2">
+          <span class="badge"><svg class="ico"><use href="#i-warehouse"/></svg></span>
+          <div><h1>Pick &amp; Reconcile</h1><p>Scan box piece-counts, find the exact mix — built for the Zebra handheld.</p></div>
+        </div>
+        <div class="home-h span2">Choose a task</div>
+        <div class="card tile recon span2" id="tile-recon">
+          <span class="tbadge"><svg class="ico"><use href="#i-clipboard-check"/></svg></span>
+          <span class="kick">① RECONCILE</span>
+          <span class="t">Reconcile pick</span>
+          <span class="d">One location. Scan the pallet — confirm an exact 100% match or get an alert that the pick isn't possible.</span>
+          <svg class="ico deco"><use href="#i-clipboard-check"/></svg>
+        </div>
+        <div class="card tile optm span2" id="tile-opt">
+          <span class="tbadge"><svg class="ico"><use href="#i-target"/></svg></span>
+          <span class="kick">② OPTIMIZE</span>
+          <span class="t">Optimize pre-order</span>
+          <span class="d">Multi-location. Set a target, scan across pallets — get the best box mix ≤ target, live.</span>
+          <svg class="ico deco"><use href="#i-target"/></svg>
+        </div>
+        <div class="card minitile" id="home-settings"><span class="mi"><svg class="ico"><use href="#i-settings"/></svg></span><div><div class="mt">Settings</div><div class="ms">Printer &amp; data</div></div></div>
+        <div class="card minitile" id="home-printer"><span class="mi"><svg class="ico"><use href="#i-printer"/></svg></span><div><div class="mt">Printer</div><div class="ms" id="home-printer-lbl">QLn420</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RECONCILE ===== -->
+  <div id="screen-recon" class="screen">
+    <header>
+      <button class="iconbtn" data-home aria-label="Home"><svg class="ico"><use href="#i-home"/></svg></button>
+      <span class="brand"><svg class="ico"><use href="#i-clipboard-check"/></svg>Reconcile</span>
+      <span class="mode">1 location</span>
+      <button class="iconbtn" data-settings aria-label="Settings"><svg class="ico"><use href="#i-settings"/></svg></button>
+    </header>
+    <div class="counters">
+      <div class="counter target"><div class="ch"><svg class="ico"><use href="#i-target"/></svg><span class="lbl">Pick</span></div><div class="val" id="rc-pick">—</div></div>
+      <div class="counter boxes"><div class="ch"><svg class="ico"><use href="#i-box"/></svg><span class="lbl">Boxes</span></div><div class="val" id="rc-boxes">0</div></div>
+      <div class="counter pieces"><div class="ch"><svg class="ico"><use href="#i-boxes"/></svg><span class="lbl">Pieces</span></div><div class="val" id="rc-pieces">0</div></div>
+    </div>
+    <div class="body">
+      <div class="row2">
+        <div class="field"><label><svg class="ico"><use href="#i-target"/></svg>Pick pieces</label><div class="inwrap"><svg class="ico"><use href="#i-barcode"/></svg><input id="in-pick" inputmode="numeric" placeholder="scan / type 500" autocomplete="off"></div></div>
+        <div class="field"><label><svg class="ico"><use href="#i-pin"/></svg>Rack</label><div class="inwrap"><svg class="ico"><use href="#i-pin"/></svg><input id="in-rrack" placeholder="CG35071601"></div></div>
+      </div>
+      <div class="field scanfield"><label><svg class="ico"><use href="#i-scan"/></svg>Scan location or box</label><div class="inwrap"><svg class="ico"><use href="#i-scan"/></svg><input id="in-rscan" placeholder="scan here…" autocomplete="off"></div></div>
+      <div class="hint"><svg class="ico sm" style="vertical-align:-2px;color:var(--accent)"><use href="#i-pin"/></svg> Scan the rack label (e.g. CG35071601) to set this location, then scan the boxes.</div>
+      <div id="rc-result"></div>
+      <div class="sec-title"><svg class="ico"><use href="#i-box"/></svg>Scanned boxes</div>
+      <div class="chips" id="rc-chips"></div>
+    </div>
+    <div class="actbar">
+      <button class="btn blue" id="rc-print"><svg class="ico"><use href="#i-printer"/></svg>Print slip</button>
+      <button class="btn danger" id="rc-new"><svg class="ico"><use href="#i-refresh"/></svg>New</button>
+    </div>
+  </div>
+
+  <!-- ===== OPTIMIZE ===== -->
+  <div id="screen-opt" class="screen">
+    <header>
+      <button class="iconbtn" data-home aria-label="Home"><svg class="ico"><use href="#i-home"/></svg></button>
+      <span class="brand"><svg class="ico"><use href="#i-target"/></svg>Optimize</span>
+      <span class="mode">pre-order</span>
+      <button class="iconbtn" data-settings aria-label="Settings"><svg class="ico"><use href="#i-settings"/></svg></button>
+    </header>
+    <div class="counters">
+      <div class="counter target"><div class="ch"><svg class="ico"><use href="#i-target"/></svg><span class="lbl">Target</span></div><div class="val" id="op-target">—</div></div>
+      <div class="counter boxes"><div class="ch"><svg class="ico"><use href="#i-box"/></svg><span class="lbl">Boxes</span></div><div class="val" id="op-boxes">0</div></div>
+      <div class="counter pieces"><div class="ch"><svg class="ico"><use href="#i-boxes"/></svg><span class="lbl">Pieces</span></div><div class="val" id="op-pieces">0</div></div>
+    </div>
+    <div class="body">
+      <div id="ov-scan">
+        <div class="field"><label><svg class="ico"><use href="#i-target"/></svg>Target pieces</label><div class="inwrap"><svg class="ico"><use href="#i-barcode"/></svg><input id="in-target" inputmode="numeric" placeholder="scan / type 1000" autocomplete="off"></div></div>
+        <div id="op-band"></div>
+        <div class="row2">
+          <div class="field" style="flex:2"><label><svg class="ico"><use href="#i-pin"/></svg>Current pallet rack</label><div class="inwrap"><svg class="ico"><use href="#i-pin"/></svg><input id="in-orack" placeholder="CG35071601"></div></div>
+          <div class="field noicon" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end">
+            <label>&nbsp;</label><button class="btn sec" id="op-newpallet" style="padding:13px 6px"><svg class="ico"><use href="#i-plus"/></svg>Pallet</button>
+          </div>
+        </div>
+        <div class="field scanfield"><label><svg class="ico"><use href="#i-scan"/></svg>Scan location or box — <span id="op-curpallet">Pallet 1</span></label><div class="inwrap"><svg class="ico"><use href="#i-scan"/></svg><input id="in-oscan" placeholder="scan here…" autocomplete="off"></div></div>
+        <div class="hint"><svg class="ico sm" style="vertical-align:-2px;color:var(--accent)"><use href="#i-pin"/></svg> Scan a rack label (e.g. CG35071601) to start a new location; scan boxes to count them.</div>
+        <div class="sec-title"><svg class="ico"><use href="#i-layers"/></svg>This pallet</div>
+        <div class="chips" id="op-chips"></div>
+      </div>
+      <div id="ov-pick" style="display:none"></div>
+      <div id="ov-board" style="display:none"></div>
+    </div>
+    <div class="nav">
+      <button data-ov="scan" class="on" aria-label="Scan"><svg class="ico"><use href="#i-scan"/></svg>Scan</button>
+      <button data-ov="pick" aria-label="Pick list"><svg class="ico"><use href="#i-clipboard-check"/></svg>Pick</button>
+      <button data-ov="board" aria-label="Dashboard"><svg class="ico"><use href="#i-grid"/></svg>Board</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings sheet -->
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h3>Settings</h3>
+    <div class="sec-title" style="margin-top:0"><svg class="ico"><use href="#i-printer"/></svg>Printer</div>
+    <div class="opt" data-printer="qln420"><span class="oi"><svg class="ico"><use href="#i-printer"/></svg></span><div><div class="ot">Zebra QLn420</div><div class="od">Mobile thermal label · 113 × 63 mm</div></div><span class="dot"></span></div>
+    <div class="opt" data-printer="a4"><span class="oi"><svg class="ico"><use href="#i-printer"/></svg></span><div><div class="ot">Regular printer</div><div class="od">Standard A4 page</div></div><span class="dot"></span></div>
+    <div class="sec-title"><svg class="ico"><use href="#i-database"/></svg>Data</div>
+    <button class="btn danger" id="clear-order"><svg class="ico"><use href="#i-trash"/></svg>Clear current order / pallets</button>
+    <div class="btns" style="margin-top:12px"><button class="btn sec" id="set-close">Close</button></div>
+  </div>
+</div>
+
+<div class="flash" id="flash"></div>
+<iframe id="printFrame" title="print" style="position:fixed;right:0;bottom:0;width:0;height:0;border:0;"></iframe>
+
+<script>
+"use strict";
+/* ============================================================
+   Scan Calculator 0.2 — single-file warehouse pick tool
+   Modes: 1) Reconcile (exact match)  2) Optimize (best ≤ target)
+   ============================================================ */
+
+/* ---------- storage ---------- */
+const LS = { cfg:'packcalc_cfg', pallets:'packcalc_pallets', active:'packcalc_active', opt:'packcalc_opt', recon:'packcalc_reconcile' };
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem(k); return v==null? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+};
+const cfg     = Object.assign({ printer:'qln420', mode:'home' }, store.get(LS.cfg,{}));
+let   recon   = Object.assign({ pick:null, rack:'', boxes:[] }, store.get(LS.recon,{}));
+let   pallets = store.get(LS.pallets, []);
+let   activeId= store.get(LS.active, null);
+let   opt     = Object.assign({ target:null }, store.get(LS.opt,{}));
+let   optView = 'scan';
+
+const saveCfg   = ()=> store.set(LS.cfg,cfg);
+const saveRecon = ()=> store.set(LS.recon,recon);
+const saveOpt   = ()=>{ store.set(LS.pallets,pallets); store.set(LS.active,activeId); store.set(LS.opt,opt); };
+
+const CAP_LIMIT = 100000; // DP guard for very large targets
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n||0).toLocaleString('en-US');
+const Bnum = seq => 'B'+String(seq).padStart(2,'0');
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ic  = (n,cls) => '<svg class="ico'+(cls?' '+cls:'')+'" aria-hidden="true"><use href="#i-'+n+'"/></svg>';
+
+/* Clean any barcode → raw integer pieces. Strips all non-digits + leading zeros. */
+function cleanToPieces(raw){
+  const digits = String(raw==null?'':raw).replace(/\D/g,'');
+  if(!digits) return null;
+  const n = parseInt(digits,10);
+  return (Number.isFinite(n) && n>0) ? n : null;
+}
+
+/* Rack location code: 2 letters + 8 digits, e.g. CG35071601. Stored verbatim, never counted. */
+const RACK_RE = /^[A-Z]{2}[0-9]{8}$/;
+function asRack(raw){
+  const s = String(raw==null?'':raw).trim().toUpperCase();
+  return RACK_RE.test(s) ? s : null;
+}
+
+/* ---------- subset-sum engine (bounded knapsack, min boxes) ---------- */
+function buildDP(boxes, cap){
+  const gm = new Map();
+  for(const b of boxes){ gm.set(b.pieces,(gm.get(b.pieces)||0)+1); }
+  const groups = [...gm.entries()].map(([v,m])=>({v,m}));
+  let prev = new Array(cap+1).fill(Infinity); prev[0]=0;
+  const used=[];
+  for(let j=0;j<groups.length;j++){
+    const v=groups[j].v, m=groups[j].m;
+    const cur=prev.slice();
+    const uj=new Int32Array(cap+1);
+    for(let s=v;s<=cap;s++){
+      let best=prev[s], bk=0;
+      const maxk=Math.min(m, Math.floor(s/v));
+      for(let k=1;k<=maxk;k++){
+        const pv=prev[s-k*v];
+        if(pv!==Infinity && pv+k<best){ best=pv+k; bk=k; }
+      }
+      if(bk>0){ cur[s]=best; uj[s]=bk; }
+    }
+    prev=cur; used.push(uj);
+  }
+  return { dp:prev, used, groups };
+}
+function reconstruct(model, S){
+  const need=new Map(); let s=S;
+  for(let j=model.groups.length-1;j>=0;j--){
+    const k=model.used[j][s];
+    if(k>0){ const v=model.groups[j].v; need.set(v,(need.get(v)||0)+k); s-=k*v; }
+  }
+  return need;
+}
+function chooseBoxes(needMap, boxes){
+  const remaining=new Map(needMap);
+  const locs=new Map();
+  for(const b of boxes){ if(!locs.has(b.locKey)) locs.set(b.locKey,[]); locs.get(b.locKey).push(b); }
+  const chosen=[]; const usedIds=new Set();
+  let guard=0;
+  while([...remaining.values()].some(v=>v>0) && guard++<5000){
+    let bestLoc=null,bestScore=-1;
+    for(const [lk,arr] of locs){
+      const cnt=new Map(remaining); let score=0;
+      for(const b of arr){ if(usedIds.has(b._id))continue; const nd=cnt.get(b.pieces)||0; if(nd>0){score++;cnt.set(b.pieces,nd-1);} }
+      if(score>bestScore){bestScore=score;bestLoc=lk;}
+    }
+    if(bestScore<=0) break;
+    for(const b of locs.get(bestLoc)){
+      if(usedIds.has(b._id))continue;
+      const nd=remaining.get(b.pieces)||0;
+      if(nd>0){ chosen.push(b); usedIds.add(b._id); remaining.set(b.pieces,nd-1); }
+    }
+  }
+  return chosen;
+}
+function greedyUnder(boxes, target){
+  const sorted=[...boxes].sort((a,b)=>b.pieces-a.pieces);
+  const chosen=[]; let sum=0;
+  for(const b of sorted){ if(sum+b.pieces<=target){ chosen.push(b); sum+=b.pieces; } }
+  return { sum, picks:chosen, approx:true };
+}
+function solveUnder(boxes, target){
+  if(!target||target<=0||!boxes.length) return { sum:0, picks:[], approx:false };
+  if(target>CAP_LIMIT) return greedyUnder(boxes,target);
+  const model=buildDP(boxes,target);
+  let s=0; for(let i=target;i>=0;i--){ if(model.dp[i]!==Infinity){ s=i; break; } }
+  return { sum:s, picks:chooseBoxes(reconstruct(model,s),boxes), approx:false };
+}
+function solveExact(boxes, pick){
+  if(!pick||pick<=0||!boxes.length) return { exact:false, sum:0, picks:[], closest:0, closestPicks:[] };
+  if(pick>CAP_LIMIT){ const g=greedyUnder(boxes,pick); return { exact:g.sum===pick, sum:g.sum, picks:g.picks, closest:g.sum, closestPicks:g.picks, approx:true }; }
+  const model=buildDP(boxes,pick);
+  const exact = model.dp[pick]!==Infinity;
+  let cs=0; for(let i=pick;i>=0;i--){ if(model.dp[i]!==Infinity){ cs=i; break; } }
+  const closestPicks=chooseBoxes(reconstruct(model,cs),boxes);
+  if(exact){ const p=chooseBoxes(reconstruct(model,pick),boxes); return { exact:true, sum:pick, picks:p, closest:pick, closestPicks:p }; }
+  return { exact:false, sum:cs, picks:closestPicks, closest:cs, closestPicks };
+}
+
+/* ---------- box flattening ---------- */
+function reconBoxes(){
+  return recon.boxes.map(b=>({ _id:'r'+b.seq, pieces:b.pieces, seq:b.seq, locKey:'r', rack:recon.rack, palletName:'Pallet' }));
+}
+function flatOpt(){
+  const arr=[];
+  for(const p of pallets) for(const b of p.boxes)
+    arr.push({ _id:p.id+':'+b.seq, pieces:b.pieces, seq:b.seq, locKey:p.id, palletId:p.id, palletName:p.name, rack:p.rack });
+  return arr;
+}
+function activePallet(){ return pallets.find(p=>p.id===activeId)||null; }
+function newPallet(rack){
+  const p={ id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), name:'Pallet '+(pallets.length+1), rack:rack||'', boxes:[] };
+  pallets.push(p); activeId=p.id; saveOpt(); return p;
+}
+function ensurePallet(){ return activePallet() || newPallet($('in-orack').value.trim()); }
+
+/* ---------- flash + double-scan guard ---------- */
+let _flashT=null;
+function flash(msg, good){
+  const f=$('flash'); f.innerHTML=ic(good?'check':'alert')+'<span>'+esc(msg)+'</span>'; f.classList.toggle('good',!!good); f.classList.add('show');
+  clearTimeout(_flashT); _flashT=setTimeout(()=>f.classList.remove('show'),1100);
+}
+let lastScan={raw:'',t:0};
+function isDup(raw){ const now=Date.now(); const d=(raw===lastScan.raw && now-lastScan.t<150); lastScan={raw,t:now}; return d; }
+
+/* Hands-free scan wiring: fires on Enter/Tab suffix (instant) OR, if the scanner
+   sends no suffix, on a short idle gap after the keystroke burst. No screen touch needed. */
+const SCAN_IDLE_MS = 100;
+function wireScan(id, handler){
+  const el=$(id); let timer=null;
+  const fire=()=>{ if(timer){clearTimeout(timer);timer=null;} const v=el.value; el.value=''; if(v.trim()) handler(v); el.focus(); };
+  el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key==='Tab'){ e.preventDefault(); fire(); } });
+  el.addEventListener('input',()=>{ if(timer)clearTimeout(timer); timer=setTimeout(fire, SCAN_IDLE_MS); });
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  $('screen-home').classList.toggle('active',cfg.mode==='home');
+  $('screen-recon').classList.toggle('active',cfg.mode==='reconcile');
+  $('screen-opt').classList.toggle('active',cfg.mode==='optimize');
+  if(cfg.mode==='home') $('home-printer-lbl').textContent = cfg.printer==='qln420'?'QLn420':'A4';
+  if(cfg.mode==='reconcile') renderRecon();
+  if(cfg.mode==='optimize') renderOpt();
+  document.querySelectorAll('.opt[data-printer]').forEach(el=>el.classList.toggle('sel',el.dataset.printer===cfg.printer));
+}
+
+/* ---- Reconcile ---- */
+function renderRecon(){
+  const boxes=recon.boxes;
+  const pieces=boxes.reduce((a,b)=>a+b.pieces,0);
+  $('rc-pick').textContent = recon.pick? fmt(recon.pick):'—';
+  $('rc-boxes').textContent = boxes.length;
+  $('rc-pieces').textContent = fmt(pieces);
+
+  const res = recon.pick ? solveExact(reconBoxes(), recon.pick) : null;
+  const pullIds = new Set(res? res.picks.map(b=>b._id):[]);
+  $('rc-chips').innerHTML = boxes.length
+    ? boxes.map((b,i)=>chip(b.seq,b.pieces,pullIds.has('r'+b.seq),i===boxes.length-1)).join('')
+    : '<div class="empty">'+ic('box')+'No boxes scanned yet.</div>';
+  { const ce=$('rc-chips'); ce.scrollTop=ce.scrollHeight; }
+
+  const r=$('rc-result');
+  if(!recon.pick){ r.innerHTML='<div class="banner idle">'+ic('target')+'<div><div class="bt">Enter the pick pieces to start reconciling.</div></div></div>'; return; }
+  if(!boxes.length){ r.innerHTML='<div class="banner idle">'+ic('scan')+'<div><div class="bt">Scan the boxes on this pallet.</div></div></div>'; return; }
+  if(res.exact){
+    r.innerHTML =
+      '<div class="banner ok">'+ic('check')+'<div><div class="bt">PICK OK · EXACT 100%</div><div class="bb">Pull '+res.picks.length+' box'+(res.picks.length>1?'es':'')+' = '+fmt(recon.pick)+'</div></div></div>'
+      + pullList(res.picks);
+  } else {
+    const pct=Math.round(res.closest/recon.pick*1000)/10;
+    r.innerHTML =
+      '<div class="banner bad">'+ic('alert')+'<div><div class="bt">PICK NOT POSSIBLE IN WMS</div><div class="bb">No exact combination = '+fmt(recon.pick)+'</div></div></div>'
+      + '<div class="panel">'
+      +   '<div class="kv"><span class="k">Pick required</span><span class="v">'+fmt(recon.pick)+'</span></div>'
+      +   '<div class="kv"><span class="k">Closest possible (≤)</span><span class="v">'+fmt(res.closest)+' · '+pct+'%</span></div>'
+      +   '<div class="pct-wrap"><div class="pct-bar"><div class="pct-fill" style="width:'+Math.min(100,pct)+'%"></div></div></div>'
+      +   '<div class="hint">Best achievable below target: '+(res.closestPicks.map(b=>Bnum(b.seq)+' ('+b.pieces+')').join(' + ')||'—')+'</div>'
+      + '</div>';
+  }
+}
+function pullList(picks){
+  return '<div class="panel"><div class="sec-title" style="margin:0 0 8px">'+ic('check')+'Boxes to pull</div><div class="chips">'
+    + picks.slice().sort((a,b)=>a.seq-b.seq).map(b=>chip(b.seq,b.pieces,true,false)).join('')
+    + '</div></div>';
+}
+function chip(seq,pc,pull,newest){
+  return '<div class="chip'+(pull?' pull':'')+(newest?' newest':'')+'"><div class="bi">'+Bnum(seq)+'</div><div class="pc">'+fmt(pc)+'</div></div>';
+}
+
+/* ---- Optimize ---- */
+function renderOpt(){
+  const boxes=flatOpt();
+  const pieces=boxes.reduce((a,b)=>a+b.pieces,0);
+  $('op-target').textContent = opt.target? fmt(opt.target):'—';
+  $('op-boxes').textContent = boxes.length;
+  $('op-pieces').textContent = fmt(pieces);
+  const ap=activePallet();
+  $('op-curpallet').textContent = ap? ap.name : 'Pallet 1';
+
+  $('ov-scan').style.display  = optView==='scan' ? '' : 'none';
+  $('ov-pick').style.display  = optView==='pick' ? '' : 'none';
+  $('ov-board').style.display = optView==='board'? '' : 'none';
+  document.querySelectorAll('#screen-opt .nav button').forEach(b=>b.classList.toggle('on',b.dataset.ov===optView));
+
+  const sol = opt.target ? solveUnder(boxes,opt.target) : null;
+  const band=$('op-band');
+  if(!opt.target){ band.innerHTML='<div class="band none">'+ic('target')+'<div><div class="b1">Best mix</div><div class="b2">Set a target to optimize</div></div></div>'; }
+  else if(!boxes.length){ band.innerHTML='<div class="band none">'+ic('target')+'<div><div class="b1">Best mix ≤ '+fmt(opt.target)+'</div><div class="b2">Scan boxes…</div></div></div>'; }
+  else {
+    const pct=Math.round(sol.sum/opt.target*1000)/10;
+    const exact=sol.sum===opt.target;
+    const nloc=new Set(sol.picks.map(b=>b.locKey)).size;
+    band.innerHTML='<div class="band '+(exact?'exact':'')+'">'+ic(exact?'check':'target')+'<div><div class="b1">Best mix ≤ '+fmt(opt.target)+(sol.approx?' (approx)':'')+'</div>'
+      +'<div class="b2">'+fmt(sol.sum)+' <span class="sm">/ '+fmt(opt.target)+' · '+pct+'% · '+sol.picks.length+' box'+(sol.picks.length===1?'':'es')+' · '+nloc+' loc</span></div></div></div>';
+  }
+
+  $('op-chips').innerHTML = (ap && ap.boxes.length)
+    ? ap.boxes.map((b,i)=>chip(b.seq,b.pieces,false,i===ap.boxes.length-1)).join('')
+    : '<div class="empty">'+ic('layers')+'No boxes on this pallet yet.<br>Scan to begin.</div>';
+  { const ce=$('op-chips'); ce.scrollTop=ce.scrollHeight; }
+
+  if(optView==='pick')  renderPick(boxes,sol);
+  if(optView==='board') renderBoard(boxes);
+}
+
+function renderPick(boxes,sol){
+  const c=$('ov-pick');
+  if(!opt.target){ c.innerHTML='<div class="empty">'+ic('target')+'Set a target on the Scan tab first.</div>'; return; }
+  if(!boxes.length){ c.innerHTML='<div class="empty">'+ic('box')+'No boxes scanned yet.</div>'; return; }
+  const pct=Math.round(sol.sum/opt.target*1000)/10;
+  const exact=sol.sum===opt.target;
+  const nloc=new Set(sol.picks.map(b=>b.locKey)).size;
+  let html='<div class="banner '+(exact?'ok':'idle')+'">'+ic(exact?'check':'target')+'<div><div class="bt">'+(exact?'EXACT MATCH 100%':'BEST POSSIBLE ≤ TARGET')
+    +'</div><div class="bb">'+fmt(sol.sum)+' / '+fmt(opt.target)+' · '+pct+'%</div></div></div>';
+  html+='<div class="panel"><div class="kv"><span class="k">Boxes to pull</span><span class="v">'+sol.picks.length+'</span></div>'
+    +'<div class="kv"><span class="k">Locations</span><span class="v">'+nloc+'</span></div>'
+    +(exact?'':'<div class="kv"><span class="k">Short of target</span><span class="v">'+fmt(opt.target-sol.sum)+'</span></div>')
+    +'<div class="pct-wrap"><div class="pct-bar"><div class="pct-fill" style="width:'+Math.min(100,pct)+'%"></div></div></div></div>';
+
+  const byPal=new Map();
+  for(const b of sol.picks){ if(!byPal.has(b.palletId)) byPal.set(b.palletId,[]); byPal.get(b.palletId).push(b); }
+  if(byPal.size){
+    html+='<div class="sec-title">'+ic('clipboard-check')+'Pull list</div>';
+    for(const p of pallets){
+      const arr=byPal.get(p.id); if(!arr) continue;
+      arr.sort((a,b)=>a.seq-b.seq);
+      const sub=arr.reduce((a,b)=>a+b.pieces,0);
+      html+='<div class="grp"><div class="gh"><span class="gl">'+ic('layers')+'<span>'+esc(p.name)+(p.rack?' <span class="rk">· Rack '+esc(p.rack)+'</span>':'')+'</span></span><span class="v">'+fmt(sub)+'</span></div>'
+        +'<div class="chips">'+arr.map(b=>chip(b.seq,b.pieces,true,false)).join('')+'</div></div>';
+    }
+  } else { html+='<div class="empty">'+ic('alert')+'No combination found.</div>'; }
+  html+='<div style="margin-top:12px"><button class="btn blue" id="op-printmix">'+ic('printer')+'Print picking mix</button></div>';
+  c.innerHTML=html;
+  $('op-printmix').onclick=()=>printMix(sol);
+}
+
+function renderBoard(boxes){
+  const c=$('ov-board');
+  if(!boxes.length){ c.innerHTML='<div class="empty">'+ic('grid')+'No boxes scanned yet.</div>'; return; }
+  const sizes=new Map();
+  for(const b of boxes){ const e=sizes.get(b.pieces)||{n:0,t:0}; e.n++; e.t+=b.pieces; sizes.set(b.pieces,e); }
+  const total=boxes.reduce((a,b)=>a+b.pieces,0);
+  const nloc=pallets.filter(p=>p.boxes.length).length;
+  // bento stats
+  let html='<div class="statgrid">'
+    +'<div class="stat a"><div class="sh">'+ic('box')+'Boxes</div><div class="sv">'+boxes.length+'</div></div>'
+    +'<div class="stat b"><div class="sh">'+ic('boxes')+'Pieces</div><div class="sv">'+fmt(total)+'</div></div>'
+    +'<div class="stat c"><div class="sh">'+ic('pin')+'Locations</div><div class="sv">'+nloc+'</div></div>'
+    +'<div class="stat d"><div class="sh">'+ic('layers')+'Sizes</div><div class="sv">'+sizes.size+'</div></div>'
+    +'</div>';
+  html+='<div class="sec-title">'+ic('box')+'Box sizes</div>';
+  [...sizes.entries()].sort((a,b)=>b[0]-a[0]).forEach(([sz,e])=>{
+    html+='<div class="item"><span class="szwrap">'+ic('box')+'<span class="sz">'+fmt(sz)+'</span><span class="mid">× '+e.n+' box'+(e.n===1?'':'es')+'</span></span><span class="tot">'+fmt(e.t)+'</span></div>';
+  });
+  html+='<div class="sec-title">'+ic('layers')+'Pallets</div>';
+  pallets.forEach(p=>{
+    const t=p.boxes.reduce((a,b)=>a+b.pieces,0);
+    html+='<div class="palcard"><div class="ph"><div class="pl">'+ic('layers')+'<div><span class="pn">'+esc(p.name)+'</span> '+(p.rack?'<span class="pr">· Rack '+esc(p.rack)+'</span>':'')+'</div></div>'
+      +'<button class="smallbtn" data-printpallet="'+p.id+'">'+ic('printer')+'Print</button></div>'
+      +'<div class="pstat">'+p.boxes.length+' boxes · '+fmt(t)+' pieces</div></div>';
+  });
+  c.innerHTML=html;
+}
+
+/* ============================================================
+   PRINTING (dynamic @page via hidden iframe — plain B/W, no sprite)
+   ============================================================ */
+function printCss(){
+  const small = cfg.printer==='qln420';
+  const page = small ? '@page{size:113mm 63mm;margin:3mm;}' : '@page{size:A4;margin:12mm;}';
+  return page+`
+   *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+   body{font-family:Arial,Helvetica,sans-serif;color:#000;margin:0;${small?'width:107mm;font-size:9pt;':'font-size:12pt;'}}
+   .h1{font-weight:800;font-size:${small?'11pt':'16pt'};margin:0 0 1mm;}
+   .meta{margin:0 0 2mm;line-height:1.35;}
+   .meta b{font-weight:800;}
+   .res{font-weight:800;padding:1.5mm 2mm;border:1.5pt solid #000;border-radius:2mm;margin:0 0 2mm;display:inline-block;}
+   .res.bad{background:#000;color:#fff;}
+   .grp{margin:0 0 2mm;} .grp .gh{font-weight:800;margin:0 0 1mm;border-bottom:.5pt solid #000;padding-bottom:.5mm;}
+   .chips{display:flex;flex-wrap:wrap;gap:${small?'1.5mm':'2.5mm'};}
+   .chip{border:1pt solid #000;border-radius:1.5mm;padding:${small?'1mm 1.5mm':'1.5mm 2.5mm'};text-align:center;min-width:${small?'12mm':'18mm'};}
+   .chip .bi{font-size:${small?'7pt':'9pt'};} .chip .pc{font-weight:800;font-size:${small?'11pt':'15pt'};}
+   .chip.pull{background:#000;color:#fff;}
+   .foot{margin-top:2mm;font-size:${small?'7pt':'9pt'};color:#000;}
+  `;
+}
+function pchip(seq,pc,pull){ return '<div class="chip'+(pull?' pull':'')+'"><div class="bi">'+Bnum(seq)+'</div><div class="pc">'+fmt(pc)+'</div></div>'; }
+function doPrint(inner){
+  const f=$('printFrame'); const d=f.contentWindow.document;
+  d.open(); d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><style>'+printCss()+'</style></head><body>'+inner+'</body></html>'); d.close();
+  setTimeout(()=>{ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ flash('Print failed'); } },120);
+}
+const stamp=()=> new Date().toLocaleString('en-GB');
+
+function printReconcile(){
+  if(!recon.pick){ flash('Enter a pick first'); return; }
+  if(!recon.boxes.length){ flash('No boxes scanned'); return; }
+  const boxes=reconBoxes(); const res=solveExact(boxes,recon.pick);
+  const pull=new Set(res.picks.map(b=>b._id));
+  const pieces=recon.boxes.reduce((a,b)=>a+b.pieces,0);
+  let inner='<div class="h1">RECONCILE — PICK SLIP</div>'
+    +'<div class="meta"><b>Rack:</b> '+esc(recon.rack||'—')+' &nbsp; <b>Pick:</b> '+fmt(recon.pick)+'<br>'
+    +'<b>Scanned:</b> '+fmt(pieces)+' ('+recon.boxes.length+' boxes)</div>';
+  if(res.exact){
+    inner+='<div class="res">PICK OK · EXACT 100% — pull highlighted</div>'
+      +'<div class="chips">'+recon.boxes.slice().sort((a,b)=>a.seq-b.seq).map(b=>pchip(b.seq,b.pieces,pull.has('r'+b.seq))).join('')+'</div>';
+  } else {
+    const pct=Math.round(res.closest/recon.pick*1000)/10;
+    inner+='<div class="res bad">NOT POSSIBLE IN WMS · closest '+fmt(res.closest)+' ('+pct+'%)</div>'
+      +'<div class="chips">'+recon.boxes.slice().sort((a,b)=>a.seq-b.seq).map(b=>pchip(b.seq,b.pieces,pull.has('r'+b.seq))).join('')+'</div>';
+  }
+  inner+='<div class="foot">'+stamp()+'</div>';
+  doPrint(inner);
+}
+
+function printMix(sol){
+  if(!opt.target){ flash('Set a target'); return; }
+  if(!sol||!sol.picks.length){ flash('Nothing to pick'); return; }
+  const pct=Math.round(sol.sum/opt.target*1000)/10;
+  const exact=sol.sum===opt.target;
+  const nloc=new Set(sol.picks.map(b=>b.locKey)).size;
+  const byPal=new Map();
+  for(const b of sol.picks){ if(!byPal.has(b.palletId)) byPal.set(b.palletId,[]); byPal.get(b.palletId).push(b); }
+  let inner='<div class="h1">PICKING MIX</div>'
+    +'<div class="meta"><b>Target:</b> '+fmt(opt.target)+' &nbsp; <b>Picked:</b> '+fmt(sol.sum)+' ('+pct+'%)'
+    +(exact?'':' — short '+fmt(opt.target-sol.sum))+'<br>'
+    +'<b>'+sol.picks.length+'</b> boxes from <b>'+nloc+'</b> location(s)</div>';
+  inner+='<div class="res'+(exact?'':' bad')+'">'+(exact?'EXACT 100% — pull highlighted':'BEST ≤ TARGET — pull highlighted')+'</div>';
+  for(const p of pallets){
+    const arr=byPal.get(p.id); if(!arr) continue;
+    arr.sort((a,b)=>a.seq-b.seq);
+    const sub=arr.reduce((a,b)=>a+b.pieces,0);
+    inner+='<div class="grp"><div class="gh">'+esc(p.name)+(p.rack?' · Rack '+esc(p.rack):'')+' — '+fmt(sub)+'</div>'
+      +'<div class="chips">'+arr.map(b=>pchip(b.seq,b.pieces,true)).join('')+'</div></div>';
+  }
+  inner+='<div class="foot">'+stamp()+'</div>';
+  doPrint(inner);
+}
+
+function printPallet(id){
+  const p=pallets.find(x=>x.id===id); if(!p||!p.boxes.length){ flash('Empty pallet'); return; }
+  const t=p.boxes.reduce((a,b)=>a+b.pieces,0);
+  let inner='<div class="h1">BOX CHIP — '+esc(p.name)+'</div>'
+    +'<div class="meta"><b>Rack:</b> '+esc(p.rack||'—')+' &nbsp; <b>'+p.boxes.length+'</b> boxes · <b>'+fmt(t)+'</b> pieces</div>'
+    +'<div class="chips">'+p.boxes.slice().sort((a,b)=>a.seq-b.seq).map(b=>pchip(b.seq,b.pieces,false)).join('')+'</div>'
+    +'<div class="foot">'+stamp()+'</div>';
+  doPrint(inner);
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+function setMode(m){ cfg.mode=m; saveCfg(); render(); if(m==='reconcile') focusEl('in-rscan'); if(m==='optimize') focusEl('in-oscan'); }
+function focusEl(id){ const e=$(id); if(e) setTimeout(()=>e.focus(),60); }
+
+$('tile-recon').onclick=()=>setMode('reconcile');
+$('tile-opt').onclick  =()=>setMode('optimize');
+$('home-settings').onclick=()=>openSettings();
+$('home-printer').onclick=()=>openSettings();
+document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>setMode('home'));
+document.querySelectorAll('[data-settings]').forEach(b=>b.onclick=()=>openSettings());
+
+function openSettings(){ $('overlay').classList.add('open'); }
+$('set-close').onclick=()=>$('overlay').classList.remove('open');
+$('overlay').addEventListener('click',e=>{ if(e.target.id==='overlay') $('overlay').classList.remove('open'); });
+document.querySelectorAll('.opt[data-printer]').forEach(el=>el.onclick=()=>{ cfg.printer=el.dataset.printer; saveCfg(); render(); });
+
+/* Reconcile inputs */
+$('in-pick').value = recon.pick!=null ? recon.pick : '';
+$('in-rrack').value = recon.rack || '';
+function commitPick(){ const v=cleanToPieces($('in-pick').value); recon.pick=v; $('in-pick').value=v!=null?v:''; saveRecon(); render(); }
+$('in-pick').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); commitPick(); focusEl('in-rscan'); } });
+$('in-pick').addEventListener('blur',commitPick);
+$('in-rrack').addEventListener('input',()=>{ recon.rack=$('in-rrack').value; saveRecon(); });
+function handleReconScan(raw){
+  if(isDup(raw)) return;
+  const rack=asRack(raw);
+  if(rack){ recon.rack=rack; $('in-rrack').value=rack; saveRecon(); render(); flash('Location '+rack,true); return; }
+  const pc=cleanToPieces(raw);
+  if(pc==null){ flash('Invalid scan'); return; }
+  recon.boxes.push({ seq:recon.boxes.length+1, raw:String(raw), pieces:pc, ts:Date.now() });
+  saveRecon(); render();
+}
+wireScan('in-rscan', handleReconScan);
+$('rc-print').onclick=printReconcile;
+$('rc-new').onclick=()=>{
+  if(recon.boxes.length && !confirm('Start a new reconciliation? This clears the current pick and scanned boxes.')) return;
+  recon={ pick:null, rack:'', boxes:[] }; saveRecon();
+  $('in-pick').value=''; $('in-rrack').value='';
+  render(); focusEl('in-pick');
+};
+
+/* Optimize inputs */
+$('in-target').value = opt.target!=null ? opt.target : '';
+$('in-orack').value = (activePallet()&&activePallet().rack) || '';
+function commitTarget(){ const v=cleanToPieces($('in-target').value); opt.target=v; $('in-target').value=v!=null?v:''; saveOpt(); render(); }
+$('in-target').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); commitTarget(); focusEl('in-oscan'); } });
+$('in-target').addEventListener('blur',commitTarget);
+$('in-orack').addEventListener('input',()=>{ const p=ensurePallet(); p.rack=$('in-orack').value; saveOpt(); });
+$('op-newpallet').onclick=()=>{
+  const ap=activePallet();
+  if(ap && ap.boxes.length===0){ flash('Current pallet is empty'); focusEl('in-oscan'); return; }
+  newPallet(''); $('in-orack').value=''; render(); flash('Started '+activePallet().name,true); focusEl('in-orack');
+};
+function handleOptScan(raw){
+  if(isDup(raw)) return;
+  const rack=asRack(raw);
+  if(rack){
+    const ap=activePallet();
+    if(!ap){ newPallet(rack); flash(activePallet().name+' @ '+rack,true); }
+    else if(ap.boxes.length===0){ ap.rack=rack; saveOpt(); flash(ap.name+' @ '+rack,true); }
+    else if(ap.rack===rack){ flash('Already at '+rack,true); }
+    else { newPallet(rack); flash(activePallet().name+' @ '+rack,true); }
+    $('in-orack').value=activePallet().rack;
+    render(); return;
+  }
+  const pc=cleanToPieces(raw);
+  if(pc==null){ flash('Invalid scan'); return; }
+  const p=ensurePallet();
+  p.boxes.push({ seq:p.boxes.length+1, raw:String(raw), pieces:pc, ts:Date.now() });
+  saveOpt(); render();
+}
+wireScan('in-oscan', handleOptScan);
+document.querySelectorAll('#screen-opt .nav button').forEach(b=>b.onclick=()=>{ optView=b.dataset.ov; render(); if(optView==='scan') focusEl('in-oscan'); });
+$('ov-board').addEventListener('click',e=>{ const t=e.target.closest('[data-printpallet]'); if(t) printPallet(t.dataset.printpallet); });
+
+$('clear-order').onclick=()=>{
+  if(!confirm('Clear the current Optimize order (target + all scanned pallets)?')) return;
+  pallets=[]; activeId=null; opt={target:null}; saveOpt();
+  $('in-target').value=''; $('in-orack').value=''; optView='scan';
+  $('overlay').classList.remove('open'); render(); flash('Order cleared',true);
+};
+
+/* init */
+render();
+if(cfg.mode==='reconcile') focusEl('in-rscan');
+if(cfg.mode==='optimize') focusEl('in-oscan');
+</script>
+</body>
+</html>
