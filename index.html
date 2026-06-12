@@ -621,7 +621,7 @@ function renderRecon(){
   const res = recon.pick ? solveExact(reconBoxes(), recon.pick) : null;
   const pullIds = new Set(res? res.picks.map(b=>b._id):[]);
   $('rc-chips').innerHTML = boxes.length
-    ? boxes.map((b,i)=>chip(b.seq,b.pieces,pullIds.has('r'+b.seq),i===boxes.length-1)).join('')
+    ? boxes.map((b,i)=>chip(b.seq,b.pieces,pullIds.has('r'+b.seq),i===boxes.length-1,true,null)).join('')
     : '<div class="empty">'+ic('box')+'No boxes scanned yet.</div>';
   { const ce=$('rc-chips'); ce.scrollTop=ce.scrollHeight; }
 
@@ -716,7 +716,7 @@ function renderOpt(){
   }
 
   $('op-chips').innerHTML = (ap && ap.boxes.length)
-    ? ap.boxes.map((b,i)=>chip(b.seq,b.pieces,false,i===ap.boxes.length-1)).join('')
+    ? ap.boxes.map((b,i)=>chip(b.seq,b.pieces,false,i===ap.boxes.length-1,true,ap.id)).join('')
     : '<div class="empty">'+ic('layers')+'No boxes on this pallet yet.<br>Scan to begin.</div>';
   { const ce=$('op-chips'); ce.scrollTop=ce.scrollHeight; }
 
