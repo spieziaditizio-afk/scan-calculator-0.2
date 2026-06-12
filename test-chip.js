@@ -3,9 +3,13 @@
 const fmt  = n => Number(n||0).toLocaleString('en-US');
 const Bnum = seq => 'B'+String(seq).padStart(2,'0');
 
-// CURRENT chip() — copy verbatim from index.html line 627
-function chip(seq,pc,pull,newest){
-  return '<div class="chip'+(pull?' pull':'')+(newest?' newest':'')+'"><div class="bi">'+Bnum(seq)+'</div><div class="pc">'+fmt(pc)+'</div></div>';
+// CURRENT chip() — copy verbatim from index.html line 652
+function chip(seq,pc,pull,newest,editable,palid){
+  let cls='chip'+(pull?' pull':'')+(newest?' newest':'')+(editable?' editable':'');
+  let attrs=editable?' data-seq="'+seq+'"'+(palid?' data-palid="'+palid+'"':''):'';
+  const pcEl=editable?'<div class="chip-pc">'+fmt(pc)+'</div>':'<div class="pc">'+fmt(pc)+'</div>';
+  const delEl=editable?'<button class="chip-del" aria-label="Delete">×</button>':'';
+  return '<div class="'+cls+'"'+attrs+'><div class="bi">'+Bnum(seq)+'</div>'+pcEl+delEl+'</div>';
 }
 
 let pass=0,fail=0;

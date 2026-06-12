@@ -179,12 +179,27 @@
   /* Chips */
   .chips{display:flex;flex-wrap:wrap;gap:8px;}
   #rc-chips,#op-chips{max-height:30vh;overflow-y:auto;overflow-x:hidden;align-content:flex-start;scrollbar-width:thin;scroll-behavior:smooth;}
-  .chip{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:7px 9px;min-width:62px;text-align:center;transition:var(--t);}
+  .chip{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:7px 9px;min-width:62px;text-align:center;transition:var(--t);position:relative;}
   .chip .bi{font-size:10px;color:var(--muted);letter-spacing:.5px;font-weight:600;}
   .chip .pc{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;}
   .chip.pull{background:linear-gradient(160deg,#0f2a20,#0c2018);border-color:var(--ok);box-shadow:0 0 16px -6px rgba(var(--ok-rgb),.6);}
   .chip.pull .pc{color:#86efc6;}
   .chip.newest{border-color:var(--accent);box-shadow:0 0 0 1px rgba(var(--accent-rgb),.4),0 0 16px -6px rgba(var(--accent-rgb),.7);}
+  .chip.editable{padding-right:22px;}
+  .chip-pc{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;cursor:pointer;border-radius:5px;padding:1px 3px;margin:-1px -3px;transition:background var(--t);}
+  .chip-pc:active{background:rgba(var(--accent-rgb),.18);}
+  .chip-del{position:absolute;top:4px;right:4px;width:20px;height:20px;border:none;background:none;color:var(--muted);cursor:pointer;border-radius:5px;font-size:13px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;touch-action:manipulation;transition:var(--t);}
+  .chip-del:active{color:var(--danger);background:rgba(var(--danger-rgb),.18);}
+  #edit-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;align-items:center;justify-content:center;}
+  #edit-overlay.open{display:flex;}
+  #edit-card{background:var(--panel);border:1px solid var(--border2);border-radius:18px;padding:20px;width:min(320px,90vw);display:flex;flex-direction:column;gap:14px;}
+  #edit-title{font-weight:700;font-size:15px;color:var(--text);}
+  #edit-input{font-family:inherit;font-size:28px;font-weight:800;background:#0c1219;border:1px solid var(--border2);border-radius:11px;color:var(--text);padding:10px 14px;width:100%;text-align:center;font-variant-numeric:tabular-nums;}
+  #edit-input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px rgba(var(--accent-rgb),.22);}
+  #edit-btns{display:flex;gap:10px;}
+  #edit-btns button{flex:1;height:44px;border-radius:11px;border:1px solid var(--border);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:var(--t);}
+  #edit-cancel{background:var(--panel2);color:var(--muted);}
+  #edit-save{background:var(--accent);color:var(--bg);border-color:var(--accent);}
   .sec-title{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 8px;}
   .sec-title .ico{width:14px;height:14px;color:var(--faint);}
 
@@ -408,6 +423,16 @@
 </div>
 
 <div class="flash" id="flash"></div>
+<div id="edit-overlay">
+  <div id="edit-card" role="dialog" aria-modal="true" aria-labelledby="edit-title">
+    <div id="edit-title">Edit Box</div>
+    <input id="edit-input" inputmode="numeric" autocomplete="off" aria-label="Box quantity">
+    <div id="edit-btns">
+      <button id="edit-cancel" type="button">Cancel</button>
+      <button id="edit-save" type="button">Save</button>
+    </div>
+  </div>
+</div>
 <iframe id="printFrame" title="print" style="position:fixed;right:0;bottom:0;width:0;height:0;border:0;"></iframe>
 
 <script>
@@ -624,8 +649,12 @@ function pullList(picks){
     + picks.slice().sort((a,b)=>a.seq-b.seq).map(b=>chip(b.seq,b.pieces,true,false)).join('')
     + '</div></div>';
 }
-function chip(seq,pc,pull,newest){
-  return '<div class="chip'+(pull?' pull':'')+(newest?' newest':'')+'"><div class="bi">'+Bnum(seq)+'</div><div class="pc">'+fmt(pc)+'</div></div>';
+function chip(seq,pc,pull,newest,editable,palid){
+  let cls='chip'+(pull?' pull':'')+(newest?' newest':'')+(editable?' editable':'');
+  let attrs=editable?' data-seq="'+seq+'"'+(palid?' data-palid="'+palid+'"':''):'';
+  const pcEl=editable?'<div class="chip-pc">'+fmt(pc)+'</div>':'<div class="pc">'+fmt(pc)+'</div>';
+  const delEl=editable?'<button class="chip-del" aria-label="Delete">×</button>':'';
+  return '<div class="'+cls+'"'+attrs+'><div class="bi">'+Bnum(seq)+'</div>'+pcEl+delEl+'</div>';
 }
 
 /* ---- Optimize ---- */
