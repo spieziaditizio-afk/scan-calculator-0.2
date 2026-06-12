@@ -657,6 +657,37 @@ function chip(seq,pc,pull,newest,editable,palid){
   return '<div class="'+cls+'"'+attrs+'><div class="bi">'+Bnum(seq)+'</div>'+pcEl+delEl+'</div>';
 }
 
+/* ---- Edit overlay ---- */
+let _editCtx=null;
+function openEditBox(mode,seq,palid,pieces){
+  _editCtx={mode,seq,palid};
+  $('edit-title').textContent='Edit Box '+Bnum(seq);
+  const inp=$('edit-input'); inp.value=pieces;
+  $('edit-overlay').classList.add('open');
+  setTimeout(()=>{ inp.focus(); inp.select(); },60);
+}
+function closeEditBox(){
+  $('edit-overlay').classList.remove('open');
+  _editCtx=null;
+  if(cfg.mode==='reconcile') focusEl('in-rscan');
+  if(cfg.mode==='optimize')  focusEl('in-oscan');
+}
+function saveEditBox(){
+  if(!_editCtx) return;
+  const v=cleanToPieces($('edit-input').value);
+  if(v==null){ flash('Invalid value'); return; }
+  const {mode,seq,palid}=_editCtx;
+  if(mode==='recon'){
+    const b=recon.boxes.find(x=>x.seq===seq); if(b) b.pieces=v;
+    saveRecon();
+  } else {
+    const p=pallets.find(x=>x.id===palid);
+    if(p){ const b=p.boxes.find(x=>x.seq===seq); if(b) b.pieces=v; }
+    saveOpt();
+  }
+  closeEditBox(); render();
+}
+
 /* ---- Optimize ---- */
 function renderOpt(){
   const boxes=flatOpt();
@@ -913,6 +944,34 @@ function handleOptScan(raw){
 wireScan('in-oscan', handleOptScan);
 document.querySelectorAll('#screen-opt .nav button').forEach(b=>b.onclick=()=>{ optView=b.dataset.ov; render(); if(optView==='scan') focusEl('in-oscan'); });
 $('ov-board').addEventListener('click',e=>{ const t=e.target.closest('[data-printpallet]'); if(t) printPallet(t.dataset.printpallet); });
+
+/* Chip delete / edit — Reconcile */
+$('rc-chips').addEventListener('click',e=>{
+  const del=e.target.closest('.chip-del');
+  if(del){ const c=del.closest('.chip'); recon.boxes=recon.boxes.filter(b=>b.seq!==+c.dataset.seq); saveRecon(); render(); return; }
+  const pc=e.target.closest('.chip-pc');
+  if(pc){ const c=pc.closest('.chip'); const b=recon.boxes.find(x=>x.seq===+c.dataset.seq); if(b) openEditBox('recon',b.seq,null,b.pieces); }
+});
+
+/* Chip delete / edit — Optimize */
+$('op-chips').addEventListener('click',e=>{
+  const del=e.target.closest('.chip-del');
+  if(del){
+    const c=del.closest('.chip'); const p=pallets.find(x=>x.id===c.dataset.palid);
+    if(p){ p.boxes=p.boxes.filter(b=>b.seq!==+c.dataset.seq); saveOpt(); render(); } return;
+  }
+  const pc=e.target.closest('.chip-pc');
+  if(pc){
+    const c=pc.closest('.chip'); const p=pallets.find(x=>x.id===c.dataset.palid);
+    if(p){ const b=p.boxes.find(x=>x.seq===+c.dataset.seq); if(b) openEditBox('opt',b.seq,c.dataset.palid,b.pieces); }
+  }
+});
+
+/* Edit overlay controls */
+$('edit-save').onclick=saveEditBox;
+$('edit-cancel').onclick=closeEditBox;
+$('edit-overlay').addEventListener('click',e=>{ if(e.target.id==='edit-overlay') closeEditBox(); });
+$('edit-input').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();saveEditBox();} if(e.key==='Escape') closeEditBox(); });
 
 $('clear-order').onclick=()=>{
   if(!confirm('Clear the current Optimize order (target + all scanned pallets)?')) return;
