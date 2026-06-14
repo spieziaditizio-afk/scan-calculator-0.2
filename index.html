@@ -353,7 +353,15 @@
       <span class="brand"><svg class="ico"><use href="#i-clipboard-check"/></svg>Reconcile</span>
       <span class="mode">1 location</span>
       <button class="iconbtn" data-settings aria-label="Settings"><svg class="ico"><use href="#i-settings"/></svg></button>
+      <button class="iconbtn" id="rc-guide-btn" aria-label="Quick guide">?</button>
     </header>
+    <div class="guide-panel" id="rc-guide"><ol class="guide-steps">
+      <li>Enter the pick quantity in <b>"Pick pieces"</b></li>
+      <li>Scan the rack label to set the location</li>
+      <li>Scan each box — piece count added automatically</li>
+      <li>Check result: <b>EXACT</b> → pull the highlighted boxes · <b>NOT POSSIBLE</b> → see closest option below</li>
+      <li>Print or start a new reconciliation</li>
+    </ol></div>
     <div class="counters">
       <div class="counter target"><div class="ch"><svg class="ico"><use href="#i-target"/></svg><span class="lbl">Pick</span></div><div class="val" id="rc-pick">—</div></div>
       <div class="counter boxes"><div class="ch"><svg class="ico"><use href="#i-box"/></svg><span class="lbl">Boxes</span></div><div class="val" id="rc-boxes">0</div></div>
@@ -383,7 +391,16 @@
       <span class="brand"><svg class="ico"><use href="#i-target"/></svg>Optimize</span>
       <span class="mode">pre-order</span>
       <button class="iconbtn" data-settings aria-label="Settings"><svg class="ico"><use href="#i-settings"/></svg></button>
+      <button class="iconbtn" id="op-guide-btn" aria-label="Quick guide">?</button>
     </header>
+    <div class="guide-panel" id="op-guide"><ol class="guide-steps">
+      <li>Enter target pieces in <b>"Target pieces"</b></li>
+      <li>Scan a rack label → starts Pallet 1 at that location</li>
+      <li>Scan boxes on the pallet</li>
+      <li>To add another location, scan the next rack label (auto-creates Pallet 2, etc.)</li>
+      <li>Go to <b>Pick</b> tab → see the optimal box mix ≤ target</li>
+      <li>Print picking mix or add more pallets</li>
+    </ol></div>
     <div class="counters">
       <div class="counter target"><div class="ch"><svg class="ico"><use href="#i-target"/></svg><span class="lbl">Target</span></div><div class="val" id="op-target">—</div></div>
       <div class="counter boxes"><div class="ch"><svg class="ico"><use href="#i-box"/></svg><span class="lbl">Boxes</span></div><div class="val" id="op-boxes">0</div></div>
