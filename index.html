@@ -58,6 +58,13 @@
   .iconbtn{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:11px;
     min-width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:var(--t);}
   .iconbtn:active{background:var(--panel3);transform:scale(.94);}
+  .iconbtn.active{color:var(--accent);border-color:var(--accent);}
+  .guide-panel{overflow:hidden;max-height:0;transition:max-height .22s cubic-bezier(.4,0,.2,1);background:var(--panel2);border-bottom:1px solid var(--border);}
+  .guide-panel.open{max-height:280px;}
+  .guide-steps{margin:0;padding:10px 16px 12px 34px;display:flex;flex-direction:column;gap:5px;list-style:decimal;}
+  .guide-steps li{font-size:12px;color:var(--muted);line-height:1.4;}
+  .guide-steps li::marker{color:var(--accent);font-weight:700;}
+  .guide-steps b{color:var(--text);}
 
   /* Counter bar (bento stats) */
   .counters{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px;
