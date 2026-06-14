@@ -895,7 +895,7 @@ function printPallet(id){
 /* ============================================================
    EVENTS
    ============================================================ */
-function setMode(m){ cfg.mode=m; saveCfg(); render(); if(m==='reconcile') focusEl('in-rscan'); if(m==='optimize') focusEl('in-oscan'); }
+function setMode(m){ closeGuide('recon'); closeGuide('opt'); cfg.mode=m; saveCfg(); render(); if(m==='reconcile') focusEl('in-rscan'); if(m==='optimize') focusEl('in-oscan'); }
 function focusEl(id){ const e=$(id); if(e) setTimeout(()=>e.focus(),60); }
 
 $('tile-recon').onclick=()=>setMode('reconcile');
@@ -1006,28 +1006,33 @@ $('clear-order').onclick=()=>{
 
 /* Guide panels */
 let reconGuideOpen=false, optGuideOpen=false;
+function closeGuide(screen){
+  if(screen==='recon'){
+    reconGuideOpen=false;
+    $('rc-guide').classList.remove('open'); $('rc-guide').setAttribute('aria-hidden','true');
+    $('rc-guide-btn').classList.remove('active'); $('rc-guide-btn').setAttribute('aria-expanded','false');
+  } else {
+    optGuideOpen=false;
+    $('op-guide').classList.remove('open'); $('op-guide').setAttribute('aria-hidden','true');
+    $('op-guide-btn').classList.remove('active'); $('op-guide-btn').setAttribute('aria-expanded','false');
+  }
+}
 function toggleGuide(screen){
   if(screen==='recon'){
-    reconGuideOpen=!reconGuideOpen;
-    $('rc-guide').classList.toggle('open',reconGuideOpen);
-    $('rc-guide').setAttribute('aria-hidden',String(!reconGuideOpen));
-    $('rc-guide-btn').classList.toggle('active',reconGuideOpen);
-    $('rc-guide-btn').setAttribute('aria-expanded',String(reconGuideOpen));
+    if(reconGuideOpen){ closeGuide('recon'); return; }
+    reconGuideOpen=true;
+    $('rc-guide').classList.add('open'); $('rc-guide').setAttribute('aria-hidden','false');
+    $('rc-guide-btn').classList.add('active'); $('rc-guide-btn').setAttribute('aria-expanded','true');
   } else {
-    optGuideOpen=!optGuideOpen;
-    $('op-guide').classList.toggle('open',optGuideOpen);
-    $('op-guide').setAttribute('aria-hidden',String(!optGuideOpen));
-    $('op-guide-btn').classList.toggle('active',optGuideOpen);
-    $('op-guide-btn').setAttribute('aria-expanded',String(optGuideOpen));
+    if(optGuideOpen){ closeGuide('opt'); return; }
+    optGuideOpen=true;
+    $('op-guide').classList.add('open'); $('op-guide').setAttribute('aria-hidden','false');
+    $('op-guide-btn').classList.add('active'); $('op-guide-btn').setAttribute('aria-expanded','true');
   }
 }
 document.addEventListener('click',e=>{
-  if(reconGuideOpen && !e.target.closest('#rc-guide') && !e.target.closest('#rc-guide-btn')){
-    reconGuideOpen=false; $('rc-guide').classList.remove('open'); $('rc-guide').setAttribute('aria-hidden','true'); $('rc-guide-btn').classList.remove('active'); $('rc-guide-btn').setAttribute('aria-expanded','false');
-  }
-  if(optGuideOpen && !e.target.closest('#op-guide') && !e.target.closest('#op-guide-btn')){
-    optGuideOpen=false; $('op-guide').classList.remove('open'); $('op-guide').setAttribute('aria-hidden','true'); $('op-guide-btn').classList.remove('active'); $('op-guide-btn').setAttribute('aria-expanded','false');
-  }
+  if(reconGuideOpen && !e.target.closest('#rc-guide') && !e.target.closest('#rc-guide-btn')) closeGuide('recon');
+  if(optGuideOpen && !e.target.closest('#op-guide') && !e.target.closest('#op-guide-btn')) closeGuide('opt');
 });
 
 /* init */
