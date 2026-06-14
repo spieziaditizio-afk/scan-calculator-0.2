@@ -353,9 +353,9 @@
       <span class="brand"><svg class="ico"><use href="#i-clipboard-check"/></svg>Reconcile</span>
       <span class="mode">1 location</span>
       <button class="iconbtn" data-settings aria-label="Settings"><svg class="ico"><use href="#i-settings"/></svg></button>
-      <button class="iconbtn" id="rc-guide-btn" aria-label="Quick guide">?</button>
+      <button class="iconbtn" id="rc-guide-btn" aria-label="Quick guide" aria-expanded="false" aria-controls="rc-guide">?</button>
     </header>
-    <div class="guide-panel" id="rc-guide"><ol class="guide-steps">
+    <div class="guide-panel" id="rc-guide" role="region" aria-labelledby="rc-guide-btn" aria-hidden="true"><ol class="guide-steps">
       <li>Enter the pick quantity in <b>"Pick pieces"</b></li>
       <li>Scan the rack label to set the location</li>
       <li>Scan each box — piece count added automatically</li>
@@ -391,9 +391,9 @@
       <span class="brand"><svg class="ico"><use href="#i-target"/></svg>Optimize</span>
       <span class="mode">pre-order</span>
       <button class="iconbtn" data-settings aria-label="Settings"><svg class="ico"><use href="#i-settings"/></svg></button>
-      <button class="iconbtn" id="op-guide-btn" aria-label="Quick guide">?</button>
+      <button class="iconbtn" id="op-guide-btn" aria-label="Quick guide" aria-expanded="false" aria-controls="op-guide">?</button>
     </header>
-    <div class="guide-panel" id="op-guide"><ol class="guide-steps">
+    <div class="guide-panel" id="op-guide" role="region" aria-labelledby="op-guide-btn" aria-hidden="true"><ol class="guide-steps">
       <li>Enter target pieces in <b>"Target pieces"</b></li>
       <li>Scan a rack label → starts Pallet 1 at that location</li>
       <li>Scan boxes on the pallet</li>
